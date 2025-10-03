@@ -4,64 +4,385 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiendas de Barrio</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+qwTnCStE38J50v+0SImr9w4KaI2Q7W8J6F0uw0A8=" crossorigin="" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+qwTnCStE38J50v+0SImr9w4KaI2Q7W8J6F0uw0A="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg-color: #111315;
+      --card-color: #171b1f;
+      --text-color: #f5f7fa;
+      --accent-color: #a3ff12;
+      --muted-text: #a0a7b4;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      margin: 0.75rem auto 0;
+      max-width: 36rem;
+      color: var(--muted-text);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      gap: 2rem;
+      padding: 0 1.5rem 3rem;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    section {
+      background: var(--card-color);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+    }
+
+    section h2 {
+      margin: 0 0 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    section h2::before {
+      content: "";
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--accent-color);
+    }
+
+    form {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-color);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(163, 255, 18, 0.2);
+    }
+
+    button {
+      justify-self: start;
+      padding: 0.9rem 1.75rem;
+      border: none;
+      border-radius: 999px;
+      background: var(--accent-color);
+      color: #0b0d0f;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(163, 255, 18, 0.25);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(9, 11, 14, 0.35);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    th,
+    td {
+      padding: 1rem;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    tbody tr + tr {
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: var(--muted-text);
+      font-style: italic;
+    }
+
+    .map-container {
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 420px;
+      border-radius: 16px;
+      overflow: hidden;
+      outline: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .leaflet-control-attribution {
+      color: var(--muted-text) !important;
+    }
+
+    .leaflet-control-attribution a {
+      color: inherit !important;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem 3rem;
+      color: var(--muted-text);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      main {
+        padding: 0 1rem 2.5rem;
+      }
+
+      section {
+        padding: 1.75rem;
+      }
+
+      #map {
+        height: 340px;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
     <h1>Tiendas de Barrio</h1>
-    <p>Gestiona rápidamente el inventario de tus productos locales.</p>
+    <p>Administra el inventario de tus productos locales y visualiza tus tiendas en un mapa interactivo inspirado en la estética de inDriver.</p>
   </header>
 
   <main>
-    <section class="form-section">
-      <h2>Agregar producto</h2>
-      <form id="product-form">
-        <div class="form-control">
-          <label for="name">Nombre del producto</label>
-          <input id="name" name="name" type="text" placeholder="Ej. Café molido" required>
-        </div>
-        <div class="form-control">
-          <label for="price">Precio</label>
-          <input id="price" name="price" type="number" min="0" step="0.01" placeholder="Ej. 12.50" required>
-        </div>
-        <div class="form-control">
-          <label for="stock">Stock</label>
-          <input id="stock" name="stock" type="number" min="0" step="1" placeholder="Ej. 30" required>
+    <section aria-labelledby="gestion-productos">
+      <h2 id="gestion-productos">Gestión de Productos</h2>
+      <form id="product-form" autocomplete="off">
+        <div class="form-grid">
+          <label>
+            Nombre del producto
+            <input id="product-name" name="name" type="text" placeholder="Ej. Café molido" required />
+          </label>
+          <label>
+            Precio
+            <input id="product-price" name="price" type="number" min="0" step="0.01" placeholder="Ej. 12.50" required />
+          </label>
+          <label>
+            Stock
+            <input id="product-stock" name="stock" type="number" min="0" step="1" placeholder="Ej. 30" required />
+          </label>
         </div>
         <button type="submit">Agregar producto</button>
       </form>
-    </section>
 
-    <section class="list-section">
-      <h2>Productos registrados</h2>
-      <table>
+      <table aria-live="polite" aria-describedby="productos-registrados">
+        <caption id="productos-registrados" style="display:none;">Lista de productos registrados</caption>
         <thead>
           <tr>
-            <th>Producto</th>
-            <th>Precio</th>
-            <th>Stock</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Stock</th>
           </tr>
         </thead>
         <tbody id="product-table-body">
           <tr class="empty-row">
-            <td colspan="3">Sin productos registrados</td>
+            <td colspan="3">Aún no has agregado productos.</td>
           </tr>
         </tbody>
       </table>
     </section>
 
-    <section class="map-section">
-      <h2>Tienda destacada</h2>
-      <div id="map" aria-label="Mapa de Cúcuta, Colombia"></div>
+    <section aria-labelledby="mapa-tiendas">
+      <h2 id="mapa-tiendas">Mapa de Tiendas</h2>
+      <div class="map-container">
+        <div id="map" role="presentation" aria-label="Mapa de Cúcuta, Colombia"></div>
+      </div>
     </section>
   </main>
 
   <footer>
-    <p>&copy; <span id="year"></span> Tiendas de Barrio</p>
+    &copy; <span id="current-year"></span> Tiendas de Barrio. Todos los derechos reservados.
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kCszIS+3/Rp+tO96zs5P3p7glx2tcJfC0Bf+8=" crossorigin=""></script>
-  <script src="script.js"></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kCszIS+3/Rp+tO96zs5P3p7glx2tcJfC0Bf+8="
+    crossorigin=""
+  ></script>
+  <script>
+    const products = [];
+    const productForm = document.getElementById('product-form');
+    const productTableBody = document.getElementById('product-table-body');
+    const yearSpan = document.getElementById('current-year');
+
+    yearSpan.textContent = new Date().getFullYear();
+
+    const currencyFormatter = new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0,
+    });
+
+    function renderProducts() {
+      productTableBody.innerHTML = '';
+
+      if (products.length === 0) {
+        productTableBody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="3">Aún no has agregado productos.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      products.forEach((product) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${product.name}</td>
+          <td>${currencyFormatter.format(product.price)}</td>
+          <td>${product.stock}</td>
+        `;
+        productTableBody.appendChild(row);
+      });
+    }
+
+    productForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const name = document.getElementById('product-name').value.trim();
+      const price = Number(document.getElementById('product-price').value);
+      const stock = Number(document.getElementById('product-stock').value);
+
+      if (!name) {
+        return;
+      }
+
+      products.push({ name, price, stock });
+      renderProducts();
+      productForm.reset();
+      document.getElementById('product-name').focus();
+    });
+
+    renderProducts();
+
+    const cucutaCoords = [7.8939, -72.5078];
+
+    const map = L.map('map', {
+      zoomControl: true,
+      scrollWheelZoom: false,
+    }).setView(cucutaCoords, 13);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+
+    const storeLayer = L.layerGroup().addTo(map);
+
+    const stores = [
+      {
+        name: 'Tienda principal',
+        coords: cucutaCoords,
+      },
+    ];
+
+    function renderStores() {
+      storeLayer.clearLayers();
+
+      stores.forEach((store) => {
+        L.circleMarker(store.coords, {
+          radius: 9,
+          color: '#A3FF12',
+          fillColor: '#A3FF12',
+          fillOpacity: 0.9,
+          weight: 2,
+        })
+          .bindPopup(`<strong>${store.name}</strong><br>Cúcuta, Colombia`)
+          .addTo(storeLayer);
+      });
+    }
+
+    renderStores();
+
+    window.tiendasDeBarrio = {
+      addStore(store) {
+        stores.push(store);
+        renderStores();
+      },
+      get stores() {
+        return [...stores];
+      },
+    };
+  </script>
 </body>
 </html>
