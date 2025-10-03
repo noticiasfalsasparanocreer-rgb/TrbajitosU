@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendas de Barrio - PMV</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kP1h3MnpsxNXFtdsbO6xj1p3r3b2Hqf0u0BPo=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-oQm+cQ6uB0bqGL2Jr3G1i8LJIYur2jcT1p3p3Z08+3c=" crossorigin=""></script>
+  <style>
+    :root {
+      --color-app-bg: #111315;
+      --color-panel: #171A1C;
+      --color-panel-secondary: #1F2326;
+      --color-text-primary: #F5F7FA;
+      --color-text-secondary: #B6BCC3;
+      --color-accent: #A3FF12;
+      --color-overlay: rgba(17, 19, 21, 0.72);
+      --color-border: rgba(255, 255, 255, 0.06);
+      --color-blue: #3A9BFF;
+      --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.3);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--color-app-bg);
+      color: var(--color-text-primary);
+      overflow: hidden;
+    }
+
+    body.no-scroll {
+      overflow: hidden;
+    }
+
+    #map {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    .control-button {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(23, 26, 28, 0.8);
+      border: 1px solid var(--color-border);
+      display: grid;
+      place-items: center;
+      color: var(--color-text-primary);
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 600;
+      transition: background 0.2s ease;
+    }
+
+    .control-button:active,
+    .control-button:focus-visible {
+      outline: none;
+      background: rgba(31, 35, 38, 0.9);
+    }
+
+    .chip-address {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(31, 35, 38, 0.85);
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      z-index: 500;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--color-overlay);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease;
+      z-index: 400;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: min(82vw, 320px);
+      background: var(--color-panel);
+      transform: translateX(-105%);
+      transition: transform 0.3s ease;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--color-border);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .side-menu.open {
+      transform: translateX(0);
+    }
+
+    .side-menu header {
+      padding: 24px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .side-menu h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .side-menu p {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+    }
+
+    .menu-items {
+      flex: 1;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+
+    .menu-item {
+      width: 100%;
+      padding: 16px 24px;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--color-text-primary);
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .menu-item span {
+      color: var(--color-text-secondary);
+      font-size: 12px;
+    }
+
+    .menu-item:hover,
+    .menu-item:focus-visible {
+      outline: none;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .menu-footer {
+      padding: 24px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .tendero-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--color-accent);
+      color: #111315;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(163, 255, 18, 0.25);
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(23, 26, 28, 0.92);
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.4);
+      padding: 18px 20px 28px;
+      z-index: 300;
+      backdrop-filter: blur(10px);
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      background: var(--color-panel-secondary);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      border: 1px solid var(--color-border);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .search-bar svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--color-text-secondary);
+    }
+
+    .search-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--color-text-primary);
+      font-size: 16px;
+      outline: none;
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .result-card {
+      background: var(--color-panel-secondary);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .result-card:hover,
+    .result-card:focus-visible {
+      outline: none;
+      transform: translateY(-2px);
+      background: rgba(31, 35, 38, 0.95);
+    }
+
+    .result-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .result-card p {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    .user-location-marker {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--color-blue);
+      box-shadow: 0 0 0 12px rgba(58, 155, 255, 0.18), 0 0 0 24px rgba(58, 155, 255, 0.05);
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .product-panel {
+      position: fixed;
+      inset: auto 0 0 0;
+      margin: auto;
+      max-width: 720px;
+      width: min(94vw, 720px);
+      background: var(--color-panel);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-soft);
+      transform: translateY(120%);
+      transition: transform 0.35s ease;
+      z-index: 550;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .product-panel.open {
+      transform: translateY(0);
+    }
+
+    .product-panel header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-panel h2 {
+      font-size: 22px;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text-secondary);
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      background: var(--color-panel-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      color: var(--color-text-primary);
+      font-size: 16px;
+      outline: none;
+    }
+
+    .submit-btn {
+      background: var(--color-accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #111315;
+      font-weight: 600;
+      padding: 14px;
+      cursor: pointer;
+      box-shadow: 0 12px 30px rgba(163, 255, 18, 0.25);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    th {
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      background: rgba(31, 35, 38, 0.6);
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .delete-btn {
+      background: rgba(255, 65, 65, 0.2);
+      border: 1px solid rgba(255, 65, 65, 0.35);
+      border-radius: var(--radius-sm);
+      color: #ff8a8a;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    @media (min-width: 768px) {
+      .product-panel {
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, 150%);
+      }
+
+      .product-panel.open {
+        transform: translate(-50%, -50%);
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button id="menuToggle" class="control-button" aria-label="Abrir menú">
+    <span aria-hidden="true">☰</span>
+  </button>
+
+  <div class="chip-address" role="status">
+    <span class="chip-dot"></span>
+    <span>Av. 4 #12-34, Cúcuta, Colombia</span>
+  </div>
+
+  <div id="menuOverlay" class="overlay" tabindex="-1"></div>
+
+  <nav id="sideMenu" class="side-menu" aria-hidden="true">
+    <header>
+      <h1>Tiendas de Barrio</h1>
+      <p>Descubre comercios cercanos y gestiona tus productos.</p>
+    </header>
+    <div class="menu-items">
+      <button class="menu-item" data-action="inicio">Ciudad <span>Inicio</span></button>
+      <button class="menu-item" data-action="productos">Gestión de productos</button>
+      <button class="menu-item" data-action="placeholder">Historial de pedidos</button>
+      <button class="menu-item" data-action="placeholder">Configuración</button>
+      <button class="menu-item" data-action="placeholder">Ayuda</button>
+      <button class="menu-item" data-action="placeholder">Soporte</button>
+    </div>
+    <div class="menu-footer">
+      <button class="tendero-btn" type="button">Modo tendero</button>
+    </div>
+  </nav>
+
+  <div class="bottom-sheet" aria-live="polite">
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchInput" placeholder="Buscar tiendas cercanas" aria-label="Buscar tiendas" autocomplete="off">
+    </div>
+    <div id="resultsList" class="results-list" role="list"></div>
+  </div>
+
+  <div class="user-location-marker" aria-hidden="true"></div>
+
+  <div id="panelOverlay" class="overlay" tabindex="-1"></div>
+
+  <section id="productPanel" class="product-panel" role="dialog" aria-modal="true" aria-labelledby="productPanelTitle">
+    <header>
+      <h2 id="productPanelTitle">Gestión de Productos</h2>
+      <button id="closeProductPanel" class="close-btn" type="button">Cerrar</button>
+    </header>
+    <form id="productForm">
+      <div class="form-grid">
+        <label>
+          Nombre
+          <input type="text" id="productName" required placeholder="Ej. Arroz premium">
+        </label>
+        <label>
+          Precio
+          <input type="number" id="productPrice" min="0" step="0.01" required placeholder="Ej. 4500">
+        </label>
+        <label>
+          Stock
+          <input type="number" id="productStock" min="0" step="1" required placeholder="Ej. 15">
+        </label>
+      </div>
+      <button class="submit-btn" type="submit">Agregar producto</button>
+    </form>
+    <div class="products-table">
+      <table aria-live="polite">
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Stock</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="productsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    // Datos de tiendas de ejemplo
+    const tiendas = [
+      { nombre: 'Tienda Don Luis', lat: 7.8978, lon: -72.5101, cat: 'Abarrotes', dist: '650 m' },
+      { nombre: 'Mis Abarrotes', lat: 7.8919, lon: -72.4989, cat: 'Bebidas', dist: '1.2 km' },
+      { nombre: 'D1 Cll 11A', lat: 7.8865, lon: -72.5155, cat: 'Supermercado', dist: '2.0 km' }
+    ];
+
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const panelOverlay = document.getElementById('panelOverlay');
+    const searchInput = document.getElementById('searchInput');
+    const resultsList = document.getElementById('resultsList');
+    const productPanel = document.getElementById('productPanel');
+    const closeProductPanelBtn = document.getElementById('closeProductPanel');
+    const productForm = document.getElementById('productForm');
+    const productsBody = document.getElementById('productsBody');
+
+    let map;
+    let productos = [];
+
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: false
+      }).setView([7.8939, -72.5078], 13);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19
+      }).addTo(map);
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      const tiendaIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        shadowSize: [41, 41]
+      });
+
+      tiendas.forEach((tienda) => {
+        const marker = L.marker([tienda.lat, tienda.lon], { icon: tiendaIcon })
+          .addTo(map)
+          .bindPopup(`<b>${tienda.nombre}</b><br>${tienda.cat} · ${tienda.dist}`);
+        tienda.marker = marker;
+      });
+
+      tryLocateUser();
+    }
+
+    function tryLocateUser() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          map.flyTo([latitude, longitude], 15, { duration: 1.2 });
+        },
+        () => {
+          // No acción: se mantiene el punto simulado
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+
+    function renderStoreList(list) {
+      resultsList.innerHTML = '';
+      if (list.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'result-card';
+        empty.tabIndex = 0;
+        empty.innerHTML = '<h3>Sin resultados</h3><p>Intenta buscar otra tienda.</p>';
+        resultsList.appendChild(empty);
+        return;
+      }
+
+      list.forEach((tienda) => {
+        const card = document.createElement('button');
+        card.className = 'result-card';
+        card.type = 'button';
+        card.setAttribute('role', 'listitem');
+        card.innerHTML = `<h3>${tienda.nombre}</h3><p>${tienda.cat} · ${tienda.dist}</p>`;
+        card.addEventListener('click', () => {
+          map.flyTo([tienda.lat, tienda.lon], 16, { duration: 1.3 });
+          if (tienda.marker) {
+            tienda.marker.openPopup();
+          }
+        });
+        resultsList.appendChild(card);
+      });
+    }
+
+    function openMenu() {
+      sideMenu.classList.add('open');
+      sideMenu.setAttribute('aria-hidden', 'false');
+      menuOverlay.classList.add('active');
+    }
+
+    function closeMenu() {
+      sideMenu.classList.remove('open');
+      sideMenu.setAttribute('aria-hidden', 'true');
+      menuOverlay.classList.remove('active');
+    }
+
+    function toggleMenu() {
+      if (sideMenu.classList.contains('open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    }
+
+    function openProductPanel() {
+      productPanel.classList.add('open');
+      panelOverlay.classList.add('active');
+      document.body.classList.add('no-scroll');
+    }
+
+    function closeProductPanel() {
+      productPanel.classList.remove('open');
+      panelOverlay.classList.remove('active');
+      document.body.classList.remove('no-scroll');
+    }
+
+    function loadProductos() {
+      try {
+        const stored = localStorage.getItem('productos-tiendas-barrio');
+        if (stored) {
+          productos = JSON.parse(stored);
+        }
+      } catch (error) {
+        console.warn('No fue posible recuperar productos guardados.', error);
+      }
+    }
+
+    function saveProductos() {
+      try {
+        localStorage.setItem('productos-tiendas-barrio', JSON.stringify(productos));
+      } catch (error) {
+        console.warn('No fue posible guardar los productos.', error);
+      }
+    }
+
+    function renderProductos() {
+      productsBody.innerHTML = '';
+      if (productos.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 4;
+        cell.textContent = 'Aún no has agregado productos.';
+        cell.style.color = 'var(--color-text-secondary)';
+        cell.style.textAlign = 'center';
+        cell.style.padding = '24px 12px';
+        row.appendChild(cell);
+        productsBody.appendChild(row);
+        return;
+      }
+
+      productos.forEach((producto, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${producto.nombre}</td>
+          <td>$${Number(producto.precio).toLocaleString('es-CO')}</td>
+          <td>${producto.stock}</td>
+          <td><button class="delete-btn" type="button">Eliminar</button></td>
+        `;
+        const deleteBtn = row.querySelector('button');
+        deleteBtn.addEventListener('click', () => {
+          productos.splice(index, 1);
+          saveProductos();
+          renderProductos();
+        });
+        productsBody.appendChild(row);
+      });
+    }
+
+    function handleSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      const filtered = tiendas.filter((tienda) => tienda.nombre.toLowerCase().includes(query));
+      renderStoreList(filtered);
+    }
+
+    menuToggle.addEventListener('click', toggleMenu);
+    menuOverlay.addEventListener('click', () => {
+      closeMenu();
+      closeProductPanel();
+    });
+
+    panelOverlay.addEventListener('click', () => {
+      closeProductPanel();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+        closeProductPanel();
+      }
+    });
+
+    sideMenu.addEventListener('click', (event) => {
+      const button = event.target.closest('.menu-item');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === 'productos') {
+        openProductPanel();
+      }
+      closeMenu();
+    });
+
+    closeProductPanelBtn.addEventListener('click', closeProductPanel);
+
+    searchInput.addEventListener('input', handleSearch);
+
+    productForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const nombre = document.getElementById('productName').value.trim();
+      const precio = document.getElementById('productPrice').value;
+      const stock = document.getElementById('productStock').value;
+
+      if (!nombre) return;
+
+      productos.push({ nombre, precio: parseFloat(precio || '0'), stock: parseInt(stock || '0', 10) });
+      saveProductos();
+      renderProductos();
+      productForm.reset();
+      document.getElementById('productName').focus();
+    });
+
+    function bootstrap() {
+      initMap();
+      loadProductos();
+      renderProductos();
+      renderStoreList(tiendas);
+      handleSearch();
+    }
+
+    window.addEventListener('load', bootstrap);
+  </script>
+</body>
+</html>
