@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendas de Barrio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+qwTnCStE38J50v+0SImr9w4KaI2Q7W8J6F0uw0A8=" crossorigin="" />
+</head>
+<body>
+  <header>
+    <h1>Tiendas de Barrio</h1>
+    <p>Gestiona rápidamente el inventario de tus productos locales.</p>
+  </header>
+
+  <main>
+    <section class="form-section">
+      <h2>Agregar producto</h2>
+      <form id="product-form">
+        <div class="form-control">
+          <label for="name">Nombre del producto</label>
+          <input id="name" name="name" type="text" placeholder="Ej. Café molido" required>
+        </div>
+        <div class="form-control">
+          <label for="price">Precio</label>
+          <input id="price" name="price" type="number" min="0" step="0.01" placeholder="Ej. 12.50" required>
+        </div>
+        <div class="form-control">
+          <label for="stock">Stock</label>
+          <input id="stock" name="stock" type="number" min="0" step="1" placeholder="Ej. 30" required>
+        </div>
+        <button type="submit">Agregar producto</button>
+      </form>
+    </section>
+
+    <section class="list-section">
+      <h2>Productos registrados</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody id="product-table-body">
+          <tr class="empty-row">
+            <td colspan="3">Sin productos registrados</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="map-section">
+      <h2>Tienda destacada</h2>
+      <div id="map" aria-label="Mapa de Cúcuta, Colombia"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; <span id="year"></span> Tiendas de Barrio</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kCszIS+3/Rp+tO96zs5P3p7glx2tcJfC0Bf+8=" crossorigin=""></script>
+  <script src="script.js"></script>
+</body>
+</html>
